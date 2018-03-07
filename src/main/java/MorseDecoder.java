@@ -50,11 +50,14 @@ public class MorseDecoder {
          */
         int totalBinCount = (int) Math.ceil(inputFile.getNumFrames() / BIN_SIZE);
         double[] returnBuffer = new double[totalBinCount];
-
         double[] sampleBuffer = new double[BIN_SIZE * inputFile.getNumChannels()];
+
         for (int binIndex = 0; binIndex < totalBinCount; binIndex++) {
             // Get the right number of samples from the inputFile
             // Sum all the samples together and store them in the returnBuffer
+            for (double buff : sampleBuffer) {
+                returnBuffer[binIndex] += Math.abs(buff);
+            }
         }
         return returnBuffer;
     }
@@ -64,6 +67,7 @@ public class MorseDecoder {
 
     /** Bin threshold for dots or dashes. Related to BIN_SIZE. You may need to modify this value. */
     private static final int DASH_BIN_COUNT = 8;
+
 
     /**
      * Convert power measurements to dots, dashes, and spaces.
@@ -76,6 +80,7 @@ public class MorseDecoder {
      * @param powerMeasurements the array of power measurements from binWavPower
      * @return the Morse code string of dots, dashes, and spaces
      */
+
     private static String powerToDotDash(final double[] powerMeasurements) {
         /*
          * There are four conditions to handle. Symbols should only be output when you see
@@ -87,8 +92,38 @@ public class MorseDecoder {
         // else if issilence and wassilence
         // else if issilence and not wassilence
 
-        return "";
+        boolean wasPower = false;
+        int counter = 0;
+        int silentCounter = 0;
+        String output = "";
+        for (double p : powerMeasurements) {
+            if (p >= POWER_THRESHOLD) {
+                if (wasPower) {
+                    counter++;
+                } else {
+                    if (silentCounter >= DASH_BIN_COUNT) {
+                        output += " ";
+                    }
+                    counter++;
+                    wasPower = true;
+                }
+                silentCounter = 0;
+            } else {
+                silentCounter++;
+                if (wasPower) {
+                    if (counter >= DASH_BIN_COUNT) {
+                        output += "-";
+                    } else {
+                        output += ".";
+                    }
+                    wasPower = false;
+                    counter = 0;
+                }
+            }
+        }
+        return output;
     }
+
 
     /**
      * Morse code to alpha mapping.
